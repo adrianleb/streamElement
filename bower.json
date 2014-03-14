@@ -1,0 +1,32 @@
+{
+  "name": "streamElement",
+  "version": "0.0.0",
+  "homepage": "https://github.com/adrianleb/streamElement",
+  "authors": [
+    "adrianleb <adrianleb@gmail.com>"
+  ],
+  "main": "streamElement.html",
+  "keywords": [
+    "components",
+    "web",
+    "components",
+    "stream",
+    "element",
+    "streamelement",
+    "element",
+    "stream"
+  ],
+  "license": "MIT",
+  "private": true,
+
+  "dependencies": {
+    "polymer": "Polymer/polymer"
+  },
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
