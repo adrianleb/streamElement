@@ -1,0 +1,23 @@
+<link rel="import" href="/polymer/polymer.html">
+
+<polymer-element name="stream-element" attributes="videoId videoEntry muted">
+  <template>
+  
+    <style>
+      :host {
+        display: block;
+        position: relative;
+      } 
+    </style>
+
+    <div id="container">Hello World</div>
+
+    <content></content>
+
+  </template>
+  <script>
+    (function() {
+      Polymer('stream-element', {});
+    })();
+  </script>
+</polymer-element>
