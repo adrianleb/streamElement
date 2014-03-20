@@ -1,23 +1,141 @@
 <link rel="import" href="bower_components/polymer/polymer.html">
 
-<polymer-element name="stream-element" attributes="videoId videoEntry muted">
+<polymer-element name="stream-element" attributes="url">
   <template>
   
     <style>
       :host {
         display: block;
         position: relative;
+        width: 600px;
       } 
+      #container {
+        margin-top: 10px;
+      }
+      iframe {
+        width: 100%;
+        height: 400px;
+      }
     </style>
-
-    <div id="container">Hello World</div>
 
     <content></content>
 
+    <div id="container">
+      <div id="media"></div>
+      <div id="controls">
+        <button id="playpause"></button>
+      </div>
+    </div>
+
+
   </template>
+  <script src="http://connect.soundcloud.com/sdk.js"></script>
+
   <script>
+
     (function() {
-      Polymer('stream-element', {});
+
+
+      // SC API
+      SC.initialize({
+        client_id: 'b6bfd121c9975b3b4132bc370d837395'
+      })
+
+
+      // YT API
+      var YT_URL = '//www.youtube.com/player_api';
+      var ytListeners = [];
+      
+      function loadYtApi(node) {
+        console.log('loadYtApi');
+        if (!document.querySelector('[src="' + YT_URL + '"]')) {
+          var s = document.createElement('script');
+          s.src = YT_URL;
+          document.head.appendChild(s);
+          pollForYoutubeApi();
+        }
+        ytListeners.push(node);
+      }
+      
+      function pollForYoutubeApi() {
+        console.log('pollForYoutubeApi');
+
+        setTimeout(function() {
+          if (!(window.YT && window.YT.Player)) {
+            pollForYoutubeApi();
+          } else {
+            youtubeApiReady();
+          }
+        }, 100);
+      }
+      
+      function youtubeApiReady() {
+        console.log('youtubeApiReady');
+
+        ytListeners.forEach(function(l) {
+          //l.videoIdChanged();
+          l.createPlayer();
+        });
+      }
+
+
+    
+
+      Polymer('stream-element', {
+        url: "",
+        
+
+
+        createPlayer: function() {
+          console.log('createPlayer');
+
+          if (!window.YT) {
+            loadYtApi(this);
+            return;
+          }
+          this.player = new YT.Player(this.$.container, {
+            height: '100%',
+            width: '100%',
+            events: {
+              onReady: this.playerReady.bind(this),
+              onStateChange: this.playerStateChange.bind(this)
+            }
+          });
+          if (this.playerNode) {
+            this.playerNode.hidden = true;
+          }
+        },
+        playerReady: function(e) {
+          console.log('playerReady');
+
+          this.player = e.target;
+          this.playerNode.hidden = true;
+          // this.player.loadVideoById(this.videoId);
+          // this.player.playVideo();
+          // if (this.muted) {
+            // this.player.mute();
+          // }
+          // make player iframe fittable to this component.
+          this.playerNode.style.position = "absolute";
+        },
+        playerStateChange: function(inEvent) {
+          console.log('playerStateChange');
+
+          if (inEvent.data == 1) {
+            this.playerNode.hidden = false;
+          }
+        },
+        get playerNode() {
+          return this.player && this.player.a;
+        },
+
+        urlChanged: function() {
+          console.log('urlChanged');
+
+          this.createPlayer(this)
+
+        }
+      });
     })();
   </script>
 </polymer-element>
