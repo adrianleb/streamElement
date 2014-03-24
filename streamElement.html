@@ -1,6 +1,6 @@
 <link rel="import" href="bower_components/polymer/polymer.html">
 
-<polymer-element name="stream-element" attributes="url">
+<polymer-element name="x-stream" attributes="url">
   <template>
   
     <style>
@@ -12,128 +12,203 @@
       #container {
         margin-top: 10px;
       }
+      #controls {
+        z-index:10;
+        display: block;
+        position: relative;
+
+      }
+
       iframe {
         width: 100%;
         height: 400px;
       }
     </style>
 
-    <content></content>
-
     <div id="container">
-      <div id="media"></div>
+      <div id="media">
+        <div id="youtube"></div>
+        <div id="vimeo"></div>
+      </div>
       <div id="controls">
-        <button id="playpause"></button>
+        <button id="playpause" on-click="{{buttonClick}}"></button>
       </div>
     </div>
 
 
   </template>
   <script src="http://connect.soundcloud.com/sdk.js"></script>
+  <script src="http://a.vimeocdn.com/js/froogaloop2.min.js"></script>
 
   <script>
 
     (function() {
-
 
       // SC API
       SC.initialize({
         client_id: 'b6bfd121c9975b3b4132bc370d837395'
       })
 
+      // YOUTUBE PLAYER
+      function YoutubePlayer (player) {
+        this.player = player;
 
-      // YT API
-      var YT_URL = '//www.youtube.com/player_api';
-      var ytListeners = [];
-      
-      function loadYtApi(node) {
-        console.log('loadYtApi');
-        if (!document.querySelector('[src="' + YT_URL + '"]')) {
-          var s = document.createElement('script');
-          s.src = YT_URL;
-          document.head.appendChild(s);
-          pollForYoutubeApi();
-        }
-        ytListeners.push(node);
-      }
-      
-      function pollForYoutubeApi() {
-        console.log('pollForYoutubeApi');
-
-        setTimeout(function() {
-          if (!(window.YT && window.YT.Player)) {
-            pollForYoutubeApi();
-          } else {
-            youtubeApiReady();
-          }
-        }, 100);
-      }
-      
-      function youtubeApiReady() {
-        console.log('youtubeApiReady');
-
-        ytListeners.forEach(function(l) {
-          //l.videoIdChanged();
-          l.createPlayer();
-        });
-      }
-
-
-    
-
-      Polymer('stream-element', {
-        url: "",
+         // YT API
+        var YT_URL = '//www.youtube.com/player_api';
+        var ytListeners = [];
         
 
+        var that = this;
+        
+        function pollForYoutubeApi() {
 
-        createPlayer: function() {
-          console.log('createPlayer');
+          setTimeout(function() {
+            if (!(window.YT && window.YT.Player)) {
+              pollForYoutubeApi();
+            } else {
+              ytListeners.forEach(function(l) {
+                that.createPlayer();
+              });
+            }
+          }, 100);
+        };
+  
 
-          if (!window.YT) {
-            loadYtApi(this);
-            return;
-          }
-          this.player = new YT.Player(this.$.container, {
+        this.createPlayer = function(){
+          var el  = player.node.$.media.querySelector('#youtube');
+
+          this.player = new YT.Player(el, {
             height: '100%',
             width: '100%',
+            playerVars: {
+              'controls' : 0,
+              'html5' : 0,
+              'showinfo' : 0,
+              'modestbranding' : 1,
+              'disablekb' : 1,
+              'wmode' : "opaque",
+              'playsinline' : 1 ,
+            },
             events: {
               onReady: this.playerReady.bind(this),
               onStateChange: this.playerStateChange.bind(this)
             }
           });
-          if (this.playerNode) {
-            this.playerNode.hidden = true;
+          if (this.playerNode()) {
+            this.playerNode().hidden = true;
           }
-        },
-        playerReady: function(e) {
-          console.log('playerReady');
-
+        };
+        this.playerReady = function(e) {
           this.player = e.target;
-          this.playerNode.hidden = true;
-          // this.player.loadVideoById(this.videoId);
-          // this.player.playVideo();
-          // if (this.muted) {
-            // this.player.mute();
-          // }
-          // make player iframe fittable to this component.
-          this.playerNode.style.position = "absolute";
-        },
-        playerStateChange: function(inEvent) {
-          console.log('playerStateChange');
-
+          this.playerNode().hidden = true;   
+          this.playerNode().style.position = "absolute";
+        };
+        this.playerStateChange = function(inEvent) {
           if (inEvent.data == 1) {
-            this.playerNode.hidden = false;
+            this.playerNode().hidden = false;
           }
-        },
-        get playerNode() {
+        };
+        this.playerNode = function() {
           return this.player && this.player.a;
+        };
+        
+        this.loadYtApi = function (node) {
+          if (!document.querySelector('[src="' + YT_URL + '"]')) {
+            var s = document.createElement('script');
+            s.src = YT_URL;
+            document.head.appendChild(s);
+            pollForYoutubeApi();
+          }
+
+          ytListeners.push(node);
+
+        };
+
+
+
+        this.play = function(source) {
+
+          this.player.loadVideoById(source);
+          this.player.playVideo();
+          console.debug('playing youtube:', source);
+          if (this.muted) {
+             this.player.mute();
+          }
+        }
+       if (!window.YT) {
+          this.loadYtApi();
+        }
+      }
+
+
+      // MAIN PLAYER CLASS
+
+      function Player (node){
+        this.node = node;
+        this.players = {};
+
+        this.play = function(source) {
+          this.players[source.type].play(source.src);
+        };
+        this.createPlayer = function() {
+          this.players['youtube'] = new YoutubePlayer(this);
+
+        }
+        this.createPlayer()
+        return this
+
+
+      }
+
+
+
+
+
+
+
+
+      // START ELEMENT HERE
+      Polymer('x-stream', {
+        url: "",
+        
+
+
+        ready: function(){
+          this.player = new Player(this);
+          var that = this;
+          function callSources(){
+            that.getSources()
+            callSources = null;
+          }
+          setTimeout(callSources, 1000);
+
         },
 
-        urlChanged: function() {
-          console.log('urlChanged');
 
-          this.createPlayer(this)
+        buttonClick: function(event, detail, sender) { 
+          console.debug('clicked play/pause');
+          this.player.playpause()
+        },
+        getSources: function(){
+          this.source = this.resolveUrl(this.children[0].attributes.src.textContent)
+          this.player.play(this.source);
 
+        },
+        resolveUrl: function(url){
+          var vimeo = /(?:vimeo\.com)/
+          var youtube = /(?:youtube\.com|youtu\.be)/
+          var soundcloud = /(?:soundcloud\.com)\/(.+)/g
+
+          if (url.match(vimeo)) {
+            console.log('vimeo');
+          } else if (url.match(youtube)) {
+            console.log('youtube');
+            return {type:"youtube", src:url.split("?v=")[1]};
+
+          } else if (url.match(soundcloud)){
+            console.log('soundcloud');
+
+          }
         }
       });
     })();
